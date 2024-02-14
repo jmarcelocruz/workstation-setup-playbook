@@ -1,0 +1,59 @@
+- name: Configure workstation machines
+  hosts: localhost
+  tasks:
+  - name: Add RPM Fusion repositories
+    become: true
+    block:
+    - name: Trust RPM Fusion keys (free)
+      ansible.builtin.rpm_key:
+        key: "/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-fedora-{{ ansible_facts['distribution_version'] }}"
+    - name: Trust RPM Fusion keys (nonfree)
+      ansible.builtin.rpm_key:
+        key: "/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-fedora-{{ ansible_facts['distribution_version'] }}"
+    - name: Add RPM Fusion repositories
+      ansible.builtin.dnf:
+        name:
+        - "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_version'] }}.noarch.rpm"
+        - "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_version'] }}.noarch.rpm"
+    - name: Install AppStream metadata
+      ansible.builtin.dnf:
+        name: '@core'
+  - name: Add Visual Studio Code repository
+    become: true
+    block:
+    - name: Trust Visual Studio Code key
+      ansible.builtin.rpm_key:
+        key: https://packages.microsoft.com/keys/microsoft.asc
+    - name: Add Visual Studio Code repository
+      ansible.builtin.yum_repository:
+        name: vscode
+        description: Visual Studio Code
+        baseurl: https://packages.microsoft.com/yumrepos/vscode
+        gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+        gpgcheck: true
+        enabled: true
+  - name: Enable Flathub
+    become: true
+    community.general.flatpak_remote:
+      name: flathub
+      flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+  - name: Install ffmpeg & additional codecs
+    become: true
+    ansible.builtin.dnf:
+      name:
+      - ffmpeg
+      - '@multimedia'
+      - '@sound-and-video'
+      exclude: PackageKit-gstreamer-plugin
+      allowerasing: true
+  - name: Install Celluloid, Steam, Visual Studio Code
+    become: true
+    ansible.builtin.dnf:
+      name:
+      - celluloid
+      - code
+      - steam
+  - name: Install Spotify
+    community.general.flatpak:
+      name:
+      - com.spotify.Client
